@@ -5,7 +5,8 @@
 <a href="https://godoc.org/github.com/schollz/utils"><img src="https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square" alt="Code Coverage"></a>
 </p>
 
-<center>This is a bunch of useful utilities I often use in Golang programs</center>
+This is a bunch of useful utilities I often use in Golang programs / stuff I saved from SO.
+
 
 
 # License
