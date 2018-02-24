@@ -8,20 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEncrypt(t *testing.T) {
-	key := GetRandomName()
-	encrypted, salt, iv := Encrypt([]byte("hello, world"), key)
-	decrypted, err := Decrypt(encrypted, key, salt, iv)
-	if err != nil {
-		t.Error(err)
-	}
-	if string(decrypted) != "hello, world" {
-		t.Error("problem decrypting")
-	}
-	_, err = Decrypt(encrypted, "wrong passphrase", salt, iv)
-	if err == nil {
-		t.Error("should not work!")
-	}
+func TestEncryptByte(t *testing.T) {
+	someString := []byte(`hello, world`)
+	passphrase := []byte(`1234`)
+	encrypted := Encrypt(someString, passphrase)
+	decrypted, err := Decrypt(encrypted, passphrase)
+	assert.Nil(t, err)
+	assert.Equal(t, someString, decrypted)
 }
 
 func TestEncryptFiles(t *testing.T) {

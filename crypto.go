@@ -8,7 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/hex"
+	"io"
 	"os"
 
 	"github.com/mars9/crypt"
@@ -16,38 +16,30 @@ import (
 )
 
 // Encrypt will encrypt using a passphrase.
-func Encrypt(plaintext []byte, passphrase string, dontencrypt ...bool) (encrypted []byte, salt string, iv string) {
-	if len(dontencrypt) > 0 && dontencrypt[0] {
-		return plaintext, "salt", "iv"
-	}
-	key, saltBytes := deriveKey(passphrase, nil)
-	ivBytes := make([]byte, 12)
+func Encrypt(plaintext []byte, passphrase []byte) (encrypted []byte) {
+	key, salt := deriveKey(passphrase, nil)
+	iv := make([]byte, 12)
 	// http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf
 	// Section 8.2
-	rand.Read(ivBytes)
+	rand.Read(iv)
 	b, _ := aes.NewCipher(key)
 	aesgcm, _ := cipher.NewGCM(b)
-	encrypted = aesgcm.Seal(nil, ivBytes, plaintext, nil)
-	salt = hex.EncodeToString(saltBytes)
-	iv = hex.EncodeToString(ivBytes)
+	encrypted = aesgcm.Seal(nil, iv, plaintext, nil)
+	encrypted = append(salt[:], encrypted[:]...)
+	encrypted = append(iv[:], encrypted[:]...)
 	return
 }
 
 // Decrypt takes encrypted byte and a passphrase, with salt, and iv to decrypt.
-func Decrypt(data []byte, passphrase string, salt string, iv string, dontencrypt ...bool) (plaintext []byte, err error) {
-	if len(dontencrypt) > 0 && dontencrypt[0] {
-		return data, nil
-	}
-	saltBytes, _ := hex.DecodeString(salt)
-	ivBytes, _ := hex.DecodeString(iv)
-	key, _ := deriveKey(passphrase, saltBytes)
+func Decrypt(data []byte, passphrase []byte) (plaintext []byte, err error) {
+	key, _ := deriveKey(passphrase, data[12:20])
 	b, _ := aes.NewCipher(key)
 	aesgcm, _ := cipher.NewGCM(b)
-	plaintext, err = aesgcm.Open(nil, ivBytes, data, nil)
+	plaintext, err = aesgcm.Open(nil, data[0:12], data[20:], nil)
 	return
 }
 
-func deriveKey(passphrase string, salt []byte) ([]byte, []byte) {
+func deriveKey(passphrase []byte, salt []byte) ([]byte, []byte) {
 	if salt == nil {
 		salt = make([]byte, 8)
 		// http://www.ietf.org/rfc/rfc2898.txt
@@ -92,6 +84,21 @@ func cryptFile(inputFilename string, outputFilename string, password string, enc
 		if err := c.Decrypt(out, in); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// CryptReaderToWriter will take inputbytes and output them to a file
+func CryptReaderToWriter(src io.Reader, dst io.Writer, password string, encrypt bool) (err error) {
+	c := &crypt.Crypter{
+		HashFunc: sha1.New,
+		HashSize: sha1.Size,
+		Key:      crypt.NewPbkdf2Key([]byte(password), 32),
+	}
+	if encrypt {
+		err = c.Encrypt(dst, src)
+	} else {
+		err = c.Decrypt(dst, src)
 	}
 	return nil
 }
