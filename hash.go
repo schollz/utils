@@ -7,10 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"regexp"
 )
-
-var convertWindowsLineFeed = regexp.MustCompile(`\r?\n`)
 
 // Filemd5Sum returns the md5 sum of a file and produces the same
 // hash for both Windows and Unix systems.
@@ -23,9 +20,15 @@ func Filemd5Sum(pathToFile string) (result string, err error) {
 	hash := md5.New()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := convertWindowsLineFeed.ReplaceAll(scanner.Bytes(), []byte("\n"))
-		hash.Write(line)
+		hash.Write(scanner.Bytes())
 	}
+	result = hex.EncodeToString(hash.Sum(nil))
+	return
+}
+
+func Md5Sum(s string) (result string) {
+	hash := md5.New()
+	hash.Write([]byte(s))
 	result = hex.EncodeToString(hash.Sum(nil))
 	return
 }

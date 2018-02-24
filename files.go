@@ -4,8 +4,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"runtime"
 )
+
+var convertWindowsLineFeed = regexp.MustCompile(`\r?\n`)
+
+// Dos2Unix
+func Dos2Unix(b []byte) []byte {
+	return convertWindowsLineFeed.ReplaceAll(b, []byte("\n"))
+}
 
 // UserHomeDir returns the user home directory
 // taken from go1.8c2
